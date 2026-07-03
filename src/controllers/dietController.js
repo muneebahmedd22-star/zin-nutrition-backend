@@ -14,6 +14,8 @@ async function saveDietAssessment(req, res) {
       weight,
       goal,
       bloodType,
+      medicalHistory,
+      carbsPreference,
       food,
       allergies
     } = req.body;
@@ -30,6 +32,8 @@ async function saveDietAssessment(req, res) {
       weight: parseFloat(weight),
       goal: goal,
       blood_type: bloodType,
+      medical_history: medicalHistory || 'None',
+      carbs_preference: carbsPreference || 'Regular Carbs',
       food_preference: food,
       allergies: allergies || '',
       created_at: new Date().toISOString()

@@ -3,13 +3,14 @@ const { searchKnowledgeBase } = require('../services/rag');
 const { generateTrainingProgram } = require('../services/gemini');
 const { generateProgramPDF } = require('../services/pdf');
 const { sendProgramEmail } = require('../services/email');
+const { generateGeneralDietPDF, generateGeneralWorkoutPDF } = require('../services/generalPdfs');
 
 /**
  * Executes the core Workout RAG generation pipeline
  */
 async function runRAGPipeline(profile, orderId) {
   const email = profile.email.toLowerCase();
-  const searchQuery = `Workout routines, exercises, splits, sets, reps for goal: ${profile.goal}. Workout frequency: ${profile.workout_frequency}. Preferences: food: ${profile.food_preference}, carbs: ${profile.carbs_preference}.`;
+  const searchQuery = `Workout routines, exercises, splits, sets, reps for goal: ${profile.goal}. Workout frequency: ${profile.workout_frequency}. Preferences: food: ${profile.food_preference}, carbs: ${profile.carbs_preference || 'Regular Carbs'}.`;
   
   const contexts = await searchKnowledgeBase(searchQuery);
   const contextText = contexts.join('\n\n');
@@ -69,6 +70,17 @@ async function runRAGPipeline(profile, orderId) {
 
   const pdfBuffer = await generateProgramPDF(programJson, profile);
 
+  // Generate complimentary General Diet PDF
+  let generalDietPdf = null;
+  try {
+    // Workout buyer gets standard Type O/A/B/AB Diet Guide
+    const bloodType = profile.blood_type || 'O';
+    generalDietPdf = await generateGeneralDietPDF(bloodType);
+    console.log(`Generated complimentary General Diet PDF for Blood Type ${bloodType}`);
+  } catch (pdfErr) {
+    console.error('Failed to compile General Diet PDF:', pdfErr.message);
+  }
+
   let pdfUrl = null;
   try {
     const bucketName = 'programs';
@@ -96,7 +108,8 @@ async function runRAGPipeline(profile, orderId) {
     console.error('Error uploading PDF to storage:', storageErr);
   }
 
-  await sendProgramEmail(email, profile.first_name, pdfBuffer);
+  // Send email with both customized Workout PDF and complimentary General Diet PDF + 50% discount coupon code
+  await sendProgramEmail(email, profile.first_name, pdfBuffer, generalDietPdf, false, 'ZIN50DIET');
 
   const { data: program, error: upsertError } = await supabase
     .from('generated_programs')
@@ -120,8 +133,8 @@ async function runRAGPipeline(profile, orderId) {
 async function runDietRAGPipeline(profile, orderId) {
   const email = profile.email.toLowerCase();
   
-  // 1. Build Diet RAG Search Query targeting the specific Blood Type
-  const searchQuery = `Blood Type ${profile.blood_type} diet guidelines, food choices, meats, poultry, seafood, grains, dairy, vegetables, fruits, condiments, supplements.`;
+  // 1. Build Diet RAG Search Query targeting the specific Blood Type & medical context
+  const searchQuery = `Blood Type ${profile.blood_type} diet guidelines, food choices, meats, poultry, seafood, grains, dairy, vegetables, fruits, condiments, supplements. Medical restrictions: ${profile.medical_history || 'None'}, carbs: ${profile.carbs_preference || 'Regular Carbs'}`;
   
   const contexts = await searchKnowledgeBase(searchQuery);
   const contextText = contexts.join('\n\n');
@@ -133,8 +146,9 @@ async function runDietRAGPipeline(profile, orderId) {
     CRITICAL SAFETY & BRAND RULES:
     1. Ground your recommendations on the provided blood type book context as much as possible.
     2. Customize the meals specifically matching the client's Blood Type: "${profile.blood_type}".
-    3. If the contexts do not contain enough details, you may use your standard professional nutrition knowledge base to complete the plan, ensuring it remains fully professional.
-    4. Return a valid JSON object matching the following structural schema (Reused from training layout):
+    3. If the client has a medical history of "Diabetes / High Sugar", strictly avoid simple sugars, white flour, high glycemic fruits, and processed sweeteners. Focus on high fiber, complex carbs, and clean proteins to stabilize blood glucose levels.
+    4. If the contexts do not contain enough details, you may use your standard professional nutrition knowledge base to complete the plan, ensuring it remains fully professional.
+    5. Return a valid JSON object matching the following structural schema (Reused from training layout):
     {
       "weekly_split": {
         "Monday": "Overview of meals for Monday",
@@ -161,7 +175,7 @@ async function runDietRAGPipeline(profile, orderId) {
       "recovery": "Highly beneficial supplements based on Blood Type",
       "safety_notes": "Food items to strictly AVOID (based on Blood Type O/A/B/AB guidelines)"
     }
-    5. Do not output markdown backticks (e.g. \`\`\`json) in your final response. Return raw JSON string only.
+    6. Do not output markdown backticks (e.g. \`\`\`json) in your final response. Return raw JSON string only.
   `;
 
   const userPrompt = `
@@ -172,6 +186,8 @@ async function runDietRAGPipeline(profile, orderId) {
     - Weight: ${profile.weight} kg
     - Goal: ${profile.goal}
     - Blood Type: ${profile.blood_type}
+    - Medical History: ${profile.medical_history || 'None'}
+    - Carbs Preference: ${profile.carbs_preference || 'Regular Carbs'}
     - Preference: ${profile.food_preference}
     - Allergies: ${profile.allergies || 'None'}
 
@@ -183,6 +199,15 @@ async function runDietRAGPipeline(profile, orderId) {
   const planJson = JSON.parse(rawResponse);
 
   const pdfBuffer = await generateProgramPDF(planJson, profile);
+
+  // Generate complimentary General Workout PDF based on Goal
+  let generalWorkoutPdf = null;
+  try {
+    generalWorkoutPdf = await generateGeneralWorkoutPDF(profile.goal || 'Weight Loss');
+    console.log(`Generated complimentary General Workout PDF for Goal ${profile.goal}`);
+  } catch (pdfErr) {
+    console.error('Failed to compile General Workout PDF:', pdfErr.message);
+  }
 
   let pdfUrl = null;
   try {
@@ -211,7 +236,8 @@ async function runDietRAGPipeline(profile, orderId) {
     console.error('Error uploading Diet PDF to storage:', storageErr);
   }
 
-  await sendProgramEmail(email, profile.first_name, pdfBuffer);
+  // Send email with both customized Diet PDF and complimentary General Workout PDF + 50% discount coupon code
+  await sendProgramEmail(email, profile.first_name, pdfBuffer, generalWorkoutPdf, true, 'ZIN50FIT');
 
   const { data: dietPlan, error: upsertError } = await supabase
     .from('generated_diet_plans')
