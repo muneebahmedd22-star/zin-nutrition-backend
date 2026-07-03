@@ -307,6 +307,48 @@ async function handleOrderPaidWebhook(req, res) {
   }
 }
 
+/**
+ * Manual/Admin trigger to regenerate a program (e.g. after updated ebook uploads)
+ */
+async function regenerateProgram(req, res) {
+  const { id } = req.params;
+  try {
+    const { data: program, error: selectError } = await supabase
+      .from('generated_programs')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (selectError || !program) {
+      return res.status(404).json({ success: false, message: 'Program not found.' });
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('assessments')
+      .select('*')
+      .eq('email', program.email)
+      .single();
+
+    if (profileError || !profile) {
+      return res.status(404).json({ success: false, message: 'Customer assessment profile not found.' });
+    }
+
+    // Rerun generator pipeline
+    const updatedProgram = await runRAGPipeline(profile, program.order_id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Program regenerated and emailed successfully.',
+      program: updatedProgram
+    });
+
+  } catch (error) {
+    console.error('Regeneration failed:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 module.exports = {
-  handleOrderPaidWebhook
+  handleOrderPaidWebhook,
+  regenerateProgram
 };
