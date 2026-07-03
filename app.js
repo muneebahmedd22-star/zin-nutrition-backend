@@ -7,6 +7,7 @@ const assessmentRouter = require('./src/routes/assessment');
 const adminRouter = require('./src/routes/admin');
 const webhookRouter = require('./src/routes/webhooks');
 const customerRouter = require('./src/routes/customer');
+const dietRouter = require('./src/routes/diet');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/coaching-assessment', assessmentRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/webhooks', webhookRouter);
 app.use('/api/customer', customerRouter);
+app.use('/api/diet', dietRouter);
 
 // Global Error Handler
 app.use((err, req, res, next) => {
