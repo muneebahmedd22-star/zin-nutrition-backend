@@ -62,7 +62,7 @@ async function sendProgramEmail(toEmail, customerName, pdfBuffer, generalPdfBuff
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
         <h2 style="color: #111; border-bottom: 2px solid #DAA520; padding-bottom: 10px;">Hello ${customerName}!</h2>
         <p>Thank you for choosing <strong>Zin Nutrition</strong>!</p>
-        <p>Your payment has been successfully processed, and our AI Trainer has analyzed your assessment answers alongside our ebook fitness guides to compile your plan.</p>
+        <p>Your payment has been successfully processed, and our expert coaching team has analyzed your assessment answers alongside our fitness guides to compile your plan.</p>
         <p>We are excited to share your fully customized, professional <strong>${planTitle}</strong>. We have attached the plan directly to this email.</p>
         
         <p>As requested, we have also attached a <strong>Complimentary ${complimentaryTitle}</strong> to support your wellness journey!</p>
