@@ -1,36 +1,50 @@
 const fs = require('fs');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const dotenv = require('dotenv');
 const path = require('path');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const config = require('../src/config');
 
-dotenv.config({ path: path.join(__dirname, '../.env') });
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-async function transcribe() {
-  const audioPath = "C:\\Users\\Dell\\Downloads\\WhatsApp Ptt 2026-07-03 at 3.43.29 PM.ogg";
-  if (!fs.existsSync(audioPath)) {
-    console.error('Audio file not found at:', audioPath);
-    return;
-  }
-  
-  const audioData = fs.readFileSync(audioPath);
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-  
-  console.log('Sending audio voice note to Gemini for transcription...');
-  const result = await model.generateContent([
-    {
-      inlineData: {
-        data: Buffer.from(audioData).toString("base64"),
-        mimeType: "audio/ogg"
-      }
-    },
-    "Transcribe this audio file verbatim in its original language (Hindi/Urdu/Hinglish/English)."
-  ]);
-  
-  console.log('\n--- TRANSCRIPT START ---');
-  console.log(result.response.text().trim());
-  console.log('--- TRANSCRIPT END ---\n');
+if (!config.geminiApiKey) {
+  console.error('ERROR: GEMINI_API_KEY is not defined in config.');
+  process.exit(1);
 }
 
-transcribe().catch(console.error);
+const genAI = new GoogleGenerativeAI(config.geminiApiKey);
+
+async function transcribeAudio() {
+  try {
+    const audioPath = 'C:\\Users\\Dell\\Downloads\\WhatsApp Ptt 2026-07-09 at 8.20.20 PM.ogg';
+    
+    if (!fs.existsSync(audioPath)) {
+      console.error(`Audio file not found at: ${audioPath}`);
+      return;
+    }
+
+    console.log('Loading audio file...');
+    const audioBuffer = fs.readFileSync(audioPath);
+    const base64Audio = audioBuffer.toString('base64');
+
+    console.log('Sending to Gemini 2.5 Flash for transcription and summary...');
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const prompt = 'Transcribe this voice message exactly (it is likely in Hindi/Urdu/English). Then explain clearly in Roman Urdu what the client wants.';
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: 'audio/ogg',
+          data: base64Audio
+        }
+      },
+      prompt
+    ]);
+
+    console.log('\n=== GEMINI RESPONSE ===');
+    console.log(result.response.text());
+    console.log('=======================\n');
+
+  } catch (error) {
+    console.error('Transcription error:', error.message);
+  }
+}
+
+transcribeAudio();
