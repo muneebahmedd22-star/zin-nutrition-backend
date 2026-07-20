@@ -242,8 +242,8 @@ function generateProgramPDF(programData, profile) {
               
               const eatHeight = doc.heightOfString(eatText, { width: doc.page.width - 140 });
               const portionHeight = doc.heightOfString(portionText, { width: doc.page.width - 140 });
-              const ingredientsHeight = notesObj.ingredients ? doc.heightOfString(`Ingredients (Ajza): ${notesObj.ingredients}`, { width: doc.page.width - 140 }) : 0;
-              const cookingHeight = notesObj.cooking ? doc.heightOfString(`Preparation & Cooking Way: ${notesObj.cooking}`, { width: doc.page.width - 140 }) : 0;
+              const ingredientsHeight = notesObj.ingredients ? doc.heightOfString(`Ingredients: ${notesObj.ingredients}`, { width: doc.page.width - 140 }) : 0;
+              const cookingHeight = notesObj.cooking ? doc.heightOfString(`Preparation & Cooking: ${notesObj.cooking}`, { width: doc.page.width - 140 }) : 0;
               const swapHeight = notesObj.swap ? doc.heightOfString(`Alternative Swap Option: ${notesObj.swap}`, { width: doc.page.width - 140 }) : 0;
               const macrosHeight = notesObj.macros ? doc.heightOfString(`Macros Breakdown: ${notesObj.macros}`, { width: doc.page.width - 140 }) : 0;
 
@@ -272,9 +272,9 @@ function generateProgramPDF(programData, profile) {
               doc.font('Helvetica').text(ex.sets || '1 Serving');
               cardY += portionHeight;
 
-              // 3. Ingredients (Ajza)
+              // 3. Ingredients
               if (notesObj.ingredients) {
-                doc.font('Helvetica-Bold').fillColor('#b8860b').text('Ingredients (Ajza): ', 65, cardY + 2, { continued: true });
+                doc.font('Helvetica-Bold').fillColor('#b8860b').text('Ingredients: ', 65, cardY + 2, { continued: true });
                 doc.font('Helvetica').fillColor(textColor).text(notesObj.ingredients);
                 cardY += ingredientsHeight + 4;
               }
@@ -286,9 +286,10 @@ function generateProgramPDF(programData, profile) {
                 cardY += cookingHeight + 4;
               }
 
+
               // 5. Swap Option
               if (notesObj.swap) {
-                doc.font('Helvetica-Bold').fillColor(primaryColor).text('Alternative Swap: ', 65, cardY + 2, { continued: true });
+                doc.font('Helvetica-Bold').fillColor(primaryColor).text('Alternative Swap Option: ', 65, cardY + 2, { continued: true });
                 doc.font('Helvetica').fillColor(textColor).text(notesObj.swap);
                 cardY += swapHeight + 4;
               }
