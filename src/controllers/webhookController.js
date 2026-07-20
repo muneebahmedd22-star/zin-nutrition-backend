@@ -18,10 +18,17 @@ async function runRAGPipeline(profile, orderId) {
   const systemInstruction = `
     You are an expert Personal Trainer AI. Your task is to generate a fully customized Training Program based on the retrieved textbook contexts provided by the user.
     
-    CRITICAL SAFETY RULES (HALLUCINATION PROTECTION):
+    CRITICAL WORKOUT GENERATION RULES (FOR HIGH QUALITY DATA):
     1. Ground your recommendations on the provided textbook context as much as possible.
     2. If the contexts do not contain enough details, you may use your standard professional personal training knowledge base to complete the plan, ensuring it remains fully professional.
-    3. Return a valid JSON object matching the following structural schema:
+    3. Return a valid JSON object matching the structural schema below.
+    4. For EACH exercise inside the "exercises" array:
+       - The "notes" field MUST contain:
+         - Setup & posture cue (e.g. "Keep feet shoulder-width, engage core, shoulder blades retracted").
+         - Specific breathing instruction (e.g. "Inhale slowly during eccentric drop, hold 0.5s, exhale forcefully as you drive up").
+         - Progressive warm-up set instruction (e.g. "Warmup: 1 set at 50% working weight x 10 reps, 1 set at 75% x 5 reps, then start working sets").
+    
+    Return a valid JSON object matching the following structural schema:
     {
       "weekly_split": {
         "Day 1": "Description of split",
@@ -32,17 +39,17 @@ async function runRAGPipeline(profile, orderId) {
         {
           "day_name": "Day 1 - Push Focus",
           "exercises": [
-            { "name": "Exercise Name", "sets": 3, "reps": "8-12", "rest": "60s", "notes": "Form cues" }
+            { "name": "Exercise Name", "sets": 3, "reps": "8-12", "rest": "60s", "notes": "Detailed setup cue. Breathing cue. Warmup sets guide." }
           ]
         }
       ],
-      "warm_up": "Warm-up steps",
-      "cool_down": "Cool-down steps",
-      "progressive_overload": "Detailed progression instructions",
-      "recovery": "Sleep, nutrition, hydration guidelines",
-      "safety_notes": "Important precautions"
+      "warm_up": "Thorough warm-up routine with specific joint prep steps",
+      "cool_down": "Cool-down and mobility stretches with time/duration details",
+      "progressive_overload": "Detailed progression instructions and RPE targets",
+      "recovery": "Sleep, protein targets, and active recovery guidelines",
+      "safety_notes": "Important injury prevention guidelines and form safety limits"
     }
-    4. Do not output markdown backticks (e.g. \`\`\`json) in your final response. Return raw JSON string only.
+    5. Do not output markdown backticks (e.g. \`\`\`json) in your final response. Return raw JSON string only.
   `;
 
   const userPrompt = `
@@ -143,12 +150,21 @@ async function runDietRAGPipeline(profile, orderId) {
   const systemInstruction = `
     You are an expert Dietitian and Nutritionist AI. Your task is to generate a fully customized 4-Week Diet & Meal Program based on the retrieved book contexts provided by the user.
     
-    CRITICAL SAFETY & BRAND RULES:
+    CRITICAL DIET GENERATION RULES (FOR HIGH QUALITY DATA):
     1. Ground your recommendations on the provided blood type book context as much as possible.
     2. Customize the meals specifically matching the client's Blood Type: "${profile.blood_type}".
     3. If the client has a medical history of "Diabetes / High Sugar", strictly avoid simple sugars, white flour, high glycemic fruits, and processed sweeteners. Focus on high fiber, complex carbs, and clean proteins to stabilize blood glucose levels.
     4. If the contexts do not contain enough details, you may use your standard professional nutrition knowledge base to complete the plan, ensuring it remains fully professional.
-    5. Return a valid JSON object matching the following structural schema (Reused from training layout):
+    5. Return a valid JSON object matching the structural schema below.
+    6. For EACH meal item inside the "exercises" array (representing meals):
+       - The "sets" field represents portion size and MUST contain exact weights in grams or household spoons (e.g. "150g cooked / 2 tablespoons").
+       - The "reps" field represents calories (e.g. "Approx. 450 kcal").
+       - The "notes" field MUST contain:
+         - A dynamic "Swap Option" (e.g. "Swap chicken with 150g egg whites or 130g grilled fish").
+         - Specific macros breakdown: Protein (g), Carbs (g), Fats (g).
+         - Healthy cooking/spice instructions (e.g. "Cook in 1 tsp olive oil, season with ginger/garlic, avoid table salt").
+    
+    Return a valid JSON object matching the following structural schema:
     {
       "weekly_split": {
         "Monday": "Overview of meals for Monday",
@@ -163,19 +179,17 @@ async function runDietRAGPipeline(profile, orderId) {
         {
           "day_name": "Monday Meal Schedule",
           "exercises": [
-            { "name": "Meal 1: Breakfast", "sets": "1 Portion", "reps": "Approx. 400 kcal", "rest": "08:00 AM", "notes": "Oatmeal, banana, green tea" },
-            { "name": "Meal 2: Lunch", "sets": "1 Serving", "reps": "Approx. 600 kcal", "rest": "01:00 PM", "notes": "Grilled chicken breast, brown rice, broccoli" },
-            { "name": "Meal 3: Dinner", "sets": "1 Serving", "reps": "Approx. 500 kcal", "rest": "07:00 PM", "notes": "Wild cod fillet, roasted sweet potato" }
+            { "name": "Meal 1: Breakfast", "sets": "Portion size (grams/spoons)", "reps": "Approx. 400 kcal", "rest": "08:00 AM", "notes": "Specific foods list. Macros breakdown: P/C/F. Swap option. Cooking & spices tips." }
           ]
         }
       ],
-      "warm_up": "General daily calorie targets and macro split guidance",
-      "cool_down": "Hydration requirements & shopping list",
-      "progressive_overload": "Weekly diet adaptation & portion adjustment tips",
-      "recovery": "Highly beneficial supplements based on Blood Type",
-      "safety_notes": "Food items to strictly AVOID (based on Blood Type O/A/B/AB guidelines)"
+      "warm_up": "Detailed daily calorie target and daily macro split calculations",
+      "cool_down": "Hydration requirements, green tea guidelines & weekly grocery list",
+      "progressive_overload": "Weekly diet adaptation instructions, chewing speed, and portion adjustment tips",
+      "recovery": "Highly beneficial supplement timing & dosage matrix based on Blood Type",
+      "safety_notes": "Food items and combinations to strictly AVOID (based on Blood Type O/A/B/AB guidelines)"
     }
-    6. Do not output markdown backticks (e.g. \`\`\`json) in your final response. Return raw JSON string only.
+    7. Do not output markdown backticks (e.g. \`\`\`json) in your final response. Return raw JSON string only.
   `;
 
   const userPrompt = `
