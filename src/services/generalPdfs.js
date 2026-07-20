@@ -17,29 +17,55 @@ function generateGeneralDietPDF(bloodType) {
       const type = (bloodType || 'O').toUpperCase().trim();
 
       // Brand colors
-      const primaryColor = '#111111';
+      const primaryColor = '#121212';
       const secondaryColor = '#DAA520';
       const textColor = '#333333';
+      const borderColor = '#EAEAEA';
 
-      // Cover Page
+      // --- COVER PAGE ---
       doc.rect(0, 0, doc.page.width, doc.page.height).fill(primaryColor);
-      doc.fillColor('#FFFFFF').fontSize(28).font('Helvetica-Bold').text('ZIN NUTRITION', 50, 180, { align: 'center' });
-      doc.fillColor(secondaryColor).fontSize(16).text(`GENERAL DIET GUIDE - BLOOD TYPE ${type}`, 50, 220, { align: 'center' });
-      doc.fillColor('#CCCCCC').fontSize(11).font('Helvetica').text('Individualized Food Profiles & Nutrition Principles', 50, 245, { align: 'center' });
+      
+      // Draw Gold Accent Border Frame on Cover
+      doc.rect(25, 25, doc.page.width - 50, doc.page.height - 50)
+         .lineWidth(2)
+         .strokeColor(secondaryColor)
+         .stroke();
+
+      doc.fillColor('#FFFFFF').fontSize(36).font('Helvetica-Bold').text('ZIN NUTRITION', 50, 200, { align: 'center', characterSpacing: 2 });
+      
+      doc.strokeColor(secondaryColor)
+         .lineWidth(1)
+         .moveTo(150, 255)
+         .lineTo(doc.page.width - 150, 255)
+         .stroke();
+
+      doc.fillColor(secondaryColor).fontSize(16).text(`GENERAL DIET GUIDE - BLOOD TYPE ${type}`, 50, 275, { align: 'center', characterSpacing: 1 });
+      doc.fillColor('#CCCCCC').fontSize(11).font('Helvetica').text('Individualized Food Profiles & Nutrition Principles', 50, 310, { align: 'center' });
       
       doc.fillColor('#888888').fontSize(9)
-         .text('This is a complimentary general handbook provided by Zin Nutrition.', 50, 500, { align: 'center' })
-         .text(`For fully customized calories & macro counts, purchase our Personalized 4-Week Meal Plan.`, 50, 520, { align: 'center' });
+         .text('This is a complimentary general handbook provided by Zin Nutrition.', 50, 480, { align: 'center' })
+         .text('For fully customized calories & macro counts, purchase our Personalized 4-Week Meal Plan.', 50, 500, { align: 'center' });
+
+      doc.fillColor(secondaryColor)
+         .fontSize(10)
+         .text('FUEL YOUR LIFE', 50, 680, { align: 'center', characterSpacing: 3 });
 
       // Page Break
       doc.addPage();
       const drawHeader = () => {
         doc.fillColor(primaryColor).fontSize(12).font('Helvetica-Bold').text(`ZIN NUTRITION - TYPE ${type} DIET GUIDELINES`, 50, 30);
-        doc.strokeColor(secondaryColor).lineWidth(1).moveTo(50, 45).lineTo(doc.page.width - 50, 45).stroke();
+        doc.strokeColor(secondaryColor).lineWidth(1).moveTo(50, 44).lineTo(doc.page.width - 50, 44).stroke();
       };
       drawHeader();
 
-      let y = 65;
+      let y = 60;
+      const checkSpace = (neededHeight) => {
+        if (y + neededHeight > 730) {
+          doc.addPage();
+          drawHeader();
+          y = 60;
+        }
+      };
       
       // Guidelines mapping
       const dietGuidelines = {
@@ -96,7 +122,7 @@ function generateGeneralDietPDF(bloodType) {
           neutral: [
             'Meats: Beef, Veal, Turkey',
             'Grains: Rice, Oats, Spelt',
-            'Fruits: Apples, Bananas, Blueberries, Cherries, Grapes',
+            'Fruits: Apples, Bananas, Blueberries, Grapes, Cherries',
             'Nuts: Walnuts, Almonds'
           ],
           avoid: [
@@ -132,38 +158,50 @@ function generateGeneralDietPDF(bloodType) {
       const info = dietGuidelines[type] || dietGuidelines['O'];
 
       // Draw Profile
+      checkSpace(40);
       doc.fillColor(primaryColor).fontSize(14).font('Helvetica-Bold').text('Dietary Profile Summary', 50, y);
       y += 20;
-      doc.fillColor(textColor).fontSize(10).font('Helvetica').text(info.profile, 50, y, { width: doc.page.width - 100, lineGap: 3 });
-      y += doc.heightOfString(info.profile, { width: doc.page.width - 100 }) + 20;
+
+      const profileHeight = doc.heightOfString(info.profile, { width: doc.page.width - 100, lineGap: 2 });
+      checkSpace(profileHeight + 10);
+      doc.fillColor(textColor).fontSize(10).font('Helvetica').text(info.profile, 50, y, { width: doc.page.width - 100, lineGap: 2 });
+      y += profileHeight + 25;
 
       // Draw Highly Beneficial List
+      checkSpace(35);
       doc.fillColor(primaryColor).fontSize(13).font('Helvetica-Bold').text('Highly Beneficial Foods (Act as Medicine)', 50, y);
-      y += 18;
+      y += 20;
+
       info.beneficial.forEach(item => {
-        doc.fillColor(textColor).fontSize(10).font('Helvetica').text(`• ${item}`, 60, y);
-        y += 15;
+        const itemHeight = doc.heightOfString(`• ${item}`, { width: doc.page.width - 120 });
+        checkSpace(itemHeight + 4);
+        doc.fillColor(textColor).fontSize(10).font('Helvetica').text(`• ${item}`, 60, y, { width: doc.page.width - 120 });
+        y += itemHeight + 6;
       });
       y += 10;
 
       // Draw Neutral Foods
+      checkSpace(35);
       doc.fillColor(primaryColor).fontSize(13).font('Helvetica-Bold').text('Neutral Foods (Standard Fuel)', 50, y);
-      y += 18;
+      y += 20;
+
       info.neutral.forEach(item => {
-        doc.fillColor(textColor).fontSize(10).font('Helvetica').text(`• ${item}`, 60, y);
-        y += 15;
+        const itemHeight = doc.heightOfString(`• ${item}`, { width: doc.page.width - 120 });
+        checkSpace(itemHeight + 4);
+        doc.fillColor(textColor).fontSize(10).font('Helvetica').text(`• ${item}`, 60, y, { width: doc.page.width - 120 });
+        y += itemHeight + 6;
       });
-      y += 10;
+      y += 15;
 
       // Draw Avoid Foods (Warning Box)
-      if (y > 600) { doc.addPage(); drawHeader(); y = 65; }
-      doc.rect(50, y, doc.page.width - 100, 100).fill('#F8D7DA').strokeColor('#F5C6CB').stroke();
-      doc.fillColor('#721C24').fontSize(11).font('Helvetica-Bold').text('FOODS TO STRICTLY AVOID (Act as Toxin)', 60, y + 8);
+      checkSpace(130);
+      doc.rect(50, y, doc.page.width - 100, 110).fill('#FFF0F2').strokeColor('#F5C6CB').stroke();
+      doc.fillColor('#721C24').fontSize(11).font('Helvetica-Bold').text('FOODS TO STRICTLY AVOID (Act as Toxin)', 65, y + 10);
       
-      let itemY = y + 24;
+      let itemY = y + 28;
       info.avoid.forEach(item => {
-        doc.fillColor('#721C24').fontSize(9).font('Helvetica').text(`• ${item}`, 70, itemY);
-        itemY += 14;
+        doc.fillColor('#721C24').fontSize(9.5).font('Helvetica').text(`• ${item}`, 70, itemY, { width: doc.page.width - 140 });
+        itemY += 16;
       });
 
       doc.end();
@@ -188,33 +226,59 @@ function generateGeneralWorkoutPDF(goal) {
       doc.on('error', err => reject(err));
 
       const targetGoal = goal || 'Maintenance';
-      const primaryColor = '#111111';
+      const primaryColor = '#121212';
       const secondaryColor = '#DAA520';
       const textColor = '#333333';
 
       // Cover Page
       doc.rect(0, 0, doc.page.width, doc.page.height).fill(primaryColor);
-      doc.fillColor('#FFFFFF').fontSize(28).font('Helvetica-Bold').text('ZIN NUTRITION', 50, 180, { align: 'center' });
-      doc.fillColor(secondaryColor).fontSize(16).text(`GENERAL WORKOUT HANDBOOK - ${targetGoal.toUpperCase()}`, 50, 220, { align: 'center' });
-      doc.fillColor('#CCCCCC').fontSize(11).font('Helvetica').text('Basic Splits, Warm-up Guidelines & Workout Methods', 50, 245, { align: 'center' });
+      
+      // Draw Gold Accent Border Frame on Cover
+      doc.rect(25, 25, doc.page.width - 50, doc.page.height - 50)
+         .lineWidth(2)
+         .strokeColor(secondaryColor)
+         .stroke();
+
+      doc.fillColor('#FFFFFF').fontSize(36).font('Helvetica-Bold').text('ZIN NUTRITION', 50, 200, { align: 'center', characterSpacing: 2 });
+      
+      doc.strokeColor(secondaryColor)
+         .lineWidth(1)
+         .moveTo(150, 255)
+         .lineTo(doc.page.width - 150, 255)
+         .stroke();
+
+      doc.fillColor(secondaryColor).fontSize(16).text(`GENERAL WORKOUT HANDBOOK - ${targetGoal.toUpperCase()}`, 50, 275, { align: 'center', characterSpacing: 1 });
+      doc.fillColor('#CCCCCC').fontSize(11).font('Helvetica').text('Basic Splits, Warm-up Guidelines & Workout Methods', 50, 310, { align: 'center' });
       
       doc.fillColor('#888888').fontSize(9)
-         .text('This is a complimentary general handbook provided by Zin Nutrition.', 50, 500, { align: 'center' })
-         .text(`For a fully customized calendar split, sets & reps, purchase our Personalized Coaching Program.`, 50, 520, { align: 'center' });
+         .text('This is a complimentary general handbook provided by Zin Nutrition.', 50, 480, { align: 'center' })
+         .text('For a fully customized calendar split, purchase our Personalized Coaching Program.', 50, 500, { align: 'center' });
+
+      doc.fillColor(secondaryColor)
+         .fontSize(10)
+         .text('FUEL YOUR LIFE', 50, 680, { align: 'center', characterSpacing: 3 });
 
       // Page Break
       doc.addPage();
       const drawHeader = () => {
-        doc.fillColor(primaryColor).fontSize(12).font('Helvetica-Bold').text(`ZIN NUTRITION - GENERAL WORKOUT STANDARDS`, 50, 30);
-        doc.strokeColor(secondaryColor).lineWidth(1).moveTo(50, 45).lineTo(doc.page.width - 50, 45).stroke();
+        doc.fillColor(primaryColor).fontSize(12).font('Helvetica-Bold').text('ZIN NUTRITION - GENERAL WORKOUT STANDARDS', 50, 30);
+        doc.strokeColor(secondaryColor).lineWidth(1).moveTo(50, 44).lineTo(doc.page.width - 50, 44).stroke();
       };
       drawHeader();
 
-      let y = 65;
+      let y = 60;
+      const checkSpace = (neededHeight) => {
+        if (y + neededHeight > 730) {
+          doc.addPage();
+          drawHeader();
+          y = 60;
+        }
+      };
 
       // Draw standard guidelines
+      checkSpace(40);
       doc.fillColor(primaryColor).fontSize(14).font('Helvetica-Bold').text('Standard Training Splits', 50, y);
-      y += 20;
+      y += 22;
 
       const splits = [
         'Day 1: Upper Body Focus (Chest, Back, Shoulders, Arms) - 3 sets per exercise, 10-12 reps.',
@@ -226,27 +290,42 @@ function generateGeneralWorkoutPDF(goal) {
       ];
 
       splits.forEach(line => {
-        doc.fillColor(textColor).fontSize(10).font('Helvetica').text(`• ${line}`, 50, y, { width: doc.page.width - 100 });
-        y += doc.heightOfString(line, { width: doc.page.width - 100 }) + 5;
+        const lineVal = `• ${line}`;
+        const lineLengthHeight = doc.heightOfString(lineVal, { width: doc.page.width - 100 });
+        checkSpace(lineLengthHeight + 5);
+        doc.fillColor(textColor).fontSize(10).font('Helvetica').text(lineVal, 50, y, { width: doc.page.width - 100, lineGap: 2 });
+        y += lineLengthHeight + 8;
       });
-      y += 10;
+      y += 15;
 
+      // Warm-up
+      checkSpace(35);
       doc.fillColor(primaryColor).fontSize(14).font('Helvetica-Bold').text('Warm-up Protocol', 50, y);
-      y += 18;
+      y += 20;
       const warmUpText = 'Spend 5-10 minutes preparing your body. Use dynamic stretches (e.g. arm circles, leg swings, hip openers) and light bodyweight movements. Do not perform static stretching before lifts, as it decreases muscle power output.';
-      doc.fillColor(textColor).fontSize(10).font('Helvetica').text(warmUpText, 50, y, { width: doc.page.width - 100, lineGap: 3 });
-      y += doc.heightOfString(warmUpText, { width: doc.page.width - 100 }) + 15;
+      const warmUpHeight = doc.heightOfString(warmUpText, { width: doc.page.width - 100, lineGap: 2 });
+      checkSpace(warmUpHeight + 10);
+      doc.fillColor(textColor).fontSize(10).font('Helvetica').text(warmUpText, 50, y, { width: doc.page.width - 100, lineGap: 2 });
+      y += warmUpHeight + 20;
 
+      // Progressive Overload
+      checkSpace(35);
       doc.fillColor(primaryColor).fontSize(14).font('Helvetica-Bold').text('Progressive Overload Principle', 50, y);
-      y += 18;
+      y += 20;
       const progressText = 'To see changes in strength and body composition, you must gradually increase stress on the muscles. Try to add 1 more rep or slightly increase the load (1-2 kg) each week for your major exercises.';
-      doc.fillColor(textColor).fontSize(10).font('Helvetica').text(progressText, 50, y, { width: doc.page.width - 100, lineGap: 3 });
-      y += doc.heightOfString(progressText, { width: doc.page.width - 100 }) + 15;
+      const progressHeight = doc.heightOfString(progressText, { width: doc.page.width - 100, lineGap: 2 });
+      checkSpace(progressHeight + 10);
+      doc.fillColor(textColor).fontSize(10).font('Helvetica').text(progressText, 50, y, { width: doc.page.width - 100, lineGap: 2 });
+      y += progressHeight + 20;
 
+      // Cool-down
+      checkSpace(35);
       doc.fillColor(primaryColor).fontSize(14).font('Helvetica-Bold').text('Cool-down & Recovery', 50, y);
-      y += 18;
+      y += 20;
       const coolDownText = 'Conclude with 5-10 minutes of slow walking and static stretches targeting the muscles trained. Prioritize 7-8 hours of sleep and keep protein intake at 1.6-2g per kg of bodyweight.';
-      doc.fillColor(textColor).fontSize(10).font('Helvetica').text(coolDownText, 50, y, { width: doc.page.width - 100, lineGap: 3 });
+      const coolDownHeight = doc.heightOfString(coolDownText, { width: doc.page.width - 100, lineGap: 2 });
+      checkSpace(coolDownHeight + 10);
+      doc.fillColor(textColor).fontSize(10).font('Helvetica').text(coolDownText, 50, y, { width: doc.page.width - 100, lineGap: 2 });
 
       doc.end();
     } catch (err) {
