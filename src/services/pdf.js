@@ -281,10 +281,35 @@ function generateProgramPDF(programData, profile) {
       doc.fillColor(textColor).fontSize(10).font('Helvetica').text(recoveryVal, 65, y + 24, { width: doc.page.width - 130, lineGap: 2 });
       y += recoveryHeight + 30;
 
-      // --- 5. PRINTABLE TRACKING SHEET MODULE ---
+      // --- 5. EXPECTED TRANSFORMATION MILESTONE ROADMAP ---
+      drawSectionTitle('5. Your 30-Day Transformation Roadmap');
+      
+      const timelineData = [
+        { phase: 'Days 1 - 7: Metabolic Shift', effect: isDietPlan ? 'Water retention reduction, digestive adjustment to target food sources, stabilized blood sugar, and initial clean energy surge.' : 'Central nervous system activation, target movement learning, and initial pump response.' },
+        { phase: 'Days 8 - 15: Cellular Reset', effect: isDietPlan ? 'Improved nutrient absorption, reduction in sugar cravings, deeper REM sleep cycles, and clean bowel movement patterns.' : 'Tendon adaptation, strength recovery optimization, and improved cardiovascular stamina.' },
+        { phase: 'Days 16 - 21: Visible Adaptation', effect: isDietPlan ? 'Clothing fits better around waist/hips, muscular glycogen storage fullness, and visual scale changes.' : 'Muscular fullness, progressive load capacity increases (lifting heavier), and form automation.' },
+        { phase: 'Days 22 - 30: Setpoint Stabilization', effect: isDietPlan ? 'Metabolism recalibration, sustained fat reduction/muscle growth pattern, and complete habit stabilization.' : 'Visible muscle density increases, physical conditioning base built, ready for cycle progression.' }
+      ];
+
+      timelineData.forEach(item => {
+        const itemText = `• ${item.phase}\n  ${item.effect}`;
+        const itemHeight = doc.heightOfString(itemText, { width: doc.page.width - 120, lineGap: 2.5 });
+        checkSpace(itemHeight + 10);
+
+        doc.rect(50, y, doc.page.width - 100, itemHeight + 6).fill(lightCardBg);
+        doc.rect(50, y, doc.page.width - 100, itemHeight + 6).lineWidth(0.5).strokeColor(borderColor).stroke();
+
+        doc.fillColor(secondaryColor).fontSize(9.5).font('Helvetica-Bold').text(item.phase, 65, y + 4);
+        doc.fillColor(textColor).fontSize(9.5).font('Helvetica').text(item.effect, 65, y + 16, { width: doc.page.width - 130, lineGap: 2 });
+        
+        y += itemHeight + 12;
+      });
+      y += 10;
+
+      // --- 6. PRINTABLE TRACKING SHEET MODULE / GROCERY LIST ---
       if (isDietPlan) {
         // Draw Grocery Shopping Checklist Table
-        drawSectionTitle('5. Weekly Grocery & Market Shopping List');
+        drawSectionTitle('6. Weekly Grocery & Market Shopping List');
         const groceryText = `• Proteins: Egg whites, Fresh Cod/Salmon, Skinless Chicken Breast, Greek Yogurt, Tofu, Lentils.\n• Carbohydrates: Oats, Brown Rice, Sweet Potatoes, Quinoa, Gluten-Free grains.\n• Healthy Fats: Virgin Olive Oil, Raw Almonds, Walnuts, Avocados.\n• Allowed Veggies: Broccoli, Spinach, Cucumber, Cauliflower, Leafy Greens.\n• Herbs & Spices: Ginger, Garlic, Olive oil, Green tea.`;
         const groceryHeight = doc.heightOfString(groceryText, { width: doc.page.width - 120, lineGap: 3 });
         
@@ -295,7 +320,7 @@ function generateProgramPDF(programData, profile) {
         y += groceryHeight + 40;
       } else {
         // Draw empty Gym Log template sheet for printable tracking
-        drawSectionTitle('5. Printable Progress Tracking Log');
+        drawSectionTitle('6. Printable Progress Tracking Log');
         const trackingHeight = 150;
         checkSpace(trackingHeight + 20);
 
@@ -320,8 +345,8 @@ function generateProgramPDF(programData, profile) {
         y += trackingHeight + 20;
       }
 
-      // --- 6. FAQs MODULE ---
-      drawSectionTitle('6. Coaching & Nutrition FAQs');
+      // --- 7. FAQs MODULE ---
+      drawSectionTitle('7. Coaching & Nutrition FAQs');
       const faqText = isDietPlan
         ? `Q: Can I consume coffee or black tea?\nA: Yes, but keep it without sugar or dairy. Black coffee and green tea are highly neutral.\n\nQ: What if I miss a scheduled meal timing?\nA: Do not panic. Simply consume the meal as soon as possible, or distribute the portion sizes into your next meal.\n\nQ: How do I handle dining out / cheat meals?\nA: Focus on ordering allowed proteins like grilled fish or grilled chicken with steamed greens. Avoid wheat and heavy dairy dressings.`
         : `Q: What should I do if I cannot lift the target weight?\nA: Reduce the load slightly to ensure 100% proper form. The quality of contraction always outperforms the weight loaded.\n\nQ: How quickly should I progress weight?\nA: Focus on completing the top rep range (e.g. 12 reps) with full control before increasing the weight in the next week.\n\nQ: How do I manage extreme muscle soreness?\nA: Ensure sleep is above 7.5 hours, dynamic warm-ups are completed, and consume your recommended protein targets.`;
@@ -334,7 +359,7 @@ function generateProgramPDF(programData, profile) {
       doc.fillColor(textColor).fontSize(9).font('Helvetica').text(faqText, 65, y + 10, { width: doc.page.width - 120, lineGap: 2.5 });
       y += faqHeight + 35;
 
-      // --- 7. SAFETY CALLOUT ---
+      // --- 8. SAFETY CALLOUT ---
       const safetyVal = programData.safety_notes || 'Consult your physician before beginning any program.';
       const safetyHeight = doc.heightOfString(safetyVal, { width: doc.page.width - 130 });
       
