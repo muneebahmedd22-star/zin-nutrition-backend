@@ -149,11 +149,20 @@ async function runDietRAGPipeline(profile, orderId) {
   // 2. Define prompt guidelines matching PDF schema
   const systemInstruction = `
     You are an expert Dietitian and Nutritionist AI. Your task is to generate a fully customized 4-Week Diet & Meal Program based on the retrieved book contexts provided by the user.
-    
-    CRITICAL GLOBAL LOCALIZATION RULE (APPLIES TO ENTIRE RESPONSE):
+        CRITICAL GLOBAL LOCALIZATION RULE (APPLIES TO ENTIRE RESPONSE):
     - Since the client is in Pakistan, you MUST NOT use or suggest any imported, expensive, or unavailable food items in ANY part of the generated JSON (including the "weekly_split" overview, "routines" lists, and "cool_down" grocery lists).
     - STICTLY FORBIDDEN IN ALL SECTIONS: Quinoa, Salmon, Avocados, Blueberries, Bison, Turkey, Rye Bread, Almond Milk, Cod, Tuna, Cranberries, Raspberries, Kale, Brussels sprouts, Asparagus.
-    - ALLOWED IN ALL SECTIONS: Chicken breast, lean beef, mutton, local fish (Rahu, Singari, Pomfret), eggs (desi or farm), basmati rice, chapati/roti, oats (dalia), local brown/white bread, potatoes (aloo), lentils (daal), chickpeas (safaid chana), normal cow/buffalo milk, local dahi (yogurt), cottage cheese (paneer), seasonal local fruits (apples, bananas, seasonal melons, guavas, oranges), almonds, walnuts, local vegetables (broccoli, cabbage, cauliflower, spinach, cucumbers, leafy greens, carrots).
+    - LOCAL PAKISTANI SUBSTITUTES ALLOWED (MUST BE WRITTEN IN 100% FORMAL ENGLISH ONLY. DO NOT USE ROMAN-URDU OR LOCAL TRANSLITERATIONS):
+      - Roti/Chapati -> Translate strictly as "Whole wheat flatbread" or "Flatbread".
+      - Dalia -> Translate strictly as "Oatmeal porridge" or "Oats".
+      - Dahi/Raita -> Translate strictly as "Yogurt" or "Mint-yogurt dip".
+      - Paneer -> Translate strictly as "Cottage cheese".
+      - Daal -> Translate strictly as "Lentils".
+      - Safaid Chana -> Translate strictly as "White chickpeas".
+      - Aloo -> Translate strictly as "Potatoes".
+      - Rahu/Singari/Pomfret -> Translate strictly as "Local river white fish" or "Local white fish".
+      - Normal cow/buffalo milk -> Translate strictly as "Cow's milk" or "Whole milk".
+    - Other allowed items: Chicken breast, lean beef, mutton, farm eggs, basmati rice, local brown/white bread, apples, bananas, seasonal melons, guavas, oranges, almonds, walnuts, broccoli, cabbage, cauliflower, spinach, cucumbers, leafy greens, carrots. All text must be in clean, premium, formal English.
 
     CRITICAL DIET GENERATION RULES:
     1. Ground your recommendations on the provided blood type book context as much as possible, but filter out forbidden foods.
@@ -162,8 +171,8 @@ async function runDietRAGPipeline(profile, orderId) {
     4. For EACH meal item inside the "exercises" array (representing meals):
        - The "sets" field represents portion size (e.g. "1 Plate / 1 Bowl / 2 Eggs").
        - The "reps" field represents calories (e.g. "Approx. 450 kcal").
-       - The "notes" field MUST strictly contain these exact tags, filled with allowed local Pakistani details:
-         "[WHAT_TO_EAT] <precise name of meal> [INGREDIENTS] <list of local ingredients> [COOKING_WAY] <step-by-step simple pakistani cooking method> [SWAP_OPTION] <local swap alternative> [MACROS] Protein: Xg | Carbs: Yg | Fats: Zg"
+       - The "notes" field MUST strictly contain these exact tags, filled with allowed local Pakistani details (using formal English only):
+         "[WHAT_TO_EAT] <precise name of meal in English> [INGREDIENTS] <list of local ingredients in English> [COOKING_WAY] <step-by-step simple cooking method in English> [SWAP_OPTION] <local swap alternative in English> [MACROS] Protein: Xg | Carbs: Yg | Fats: Zg"
     
     Return a valid JSON object matching the following structural schema:
     {
