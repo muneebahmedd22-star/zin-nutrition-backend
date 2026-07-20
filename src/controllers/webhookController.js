@@ -153,16 +153,18 @@ async function runDietRAGPipeline(profile, orderId) {
     CRITICAL DIET GENERATION RULES (FOR HIGH QUALITY DATA):
     1. Ground your recommendations on the provided blood type book context as much as possible.
     2. Customize the meals specifically matching the client's Blood Type: "${profile.blood_type}".
-    3. If the client has a medical history of "Diabetes / High Sugar", strictly avoid simple sugars, white flour, high glycemic fruits, and processed sweeteners. Focus on high fiber, complex carbs, and clean proteins to stabilize blood glucose levels.
+    3. STRICT PAKISTANI LOCAL FOOD RULES: Since the user is in Pakistan, strictly avoid expensive imported ingredients like almond milk, quinoa, rye toast, avocados, blueberries, and wild cod. Instead, use local, accessible Pakistani foods:
+       - Carbohydrates: Roti (chapati), Basmati rice, Oats (Dalia), whole wheat/normal brown bread, potatoes (aloo).
+       - Proteins: Chicken breast, lean beef, mutton, local fish (Rahu, Singari, Pomfret), eggs (desi or farm), lentils (daal), chickpeas (safaid chana).
+       - Fats: canola oil, olive oil, walnuts, almonds, normal local seeds.
+       - Dairy: normal cow/buffalo milk, local dahi (yogurt), cottage cheese (paneer).
     4. If the contexts do not contain enough details, you may use your standard professional nutrition knowledge base to complete the plan, ensuring it remains fully professional.
     5. Return a valid JSON object matching the structural schema below.
     6. For EACH meal item inside the "exercises" array (representing meals):
-       - The "sets" field represents portion size and MUST contain exact weights in grams or household spoons (e.g. "150g cooked / 2 tablespoons").
+       - The "sets" field represents portion size (e.g. "1 Plate / 1 Bowl / 2 Eggs").
        - The "reps" field represents calories (e.g. "Approx. 450 kcal").
-       - The "notes" field MUST contain:
-         - A dynamic "Swap Option" (e.g. "Swap chicken with 150g egg whites or 130g grilled fish").
-         - Specific macros breakdown: Protein (g), Carbs (g), Fats (g).
-         - Healthy cooking/spice instructions (e.g. "Cook in 1 tsp olive oil, season with ginger/garlic, avoid table salt").
+       - The "notes" field MUST strictly contain these exact tags, filled with local Pakistani details:
+         "[WHAT_TO_EAT] <precise name of meal> [INGREDIENTS] <list of local ingredients> [COOKING_WAY] <step-by-step simple pakistani cooking method> [SWAP_OPTION] <local swap alternative> [MACROS] Protein: Xg | Carbs: Yg | Fats: Zg"
     
     Return a valid JSON object matching the following structural schema:
     {
@@ -179,7 +181,7 @@ async function runDietRAGPipeline(profile, orderId) {
         {
           "day_name": "Monday Meal Schedule",
           "exercises": [
-            { "name": "Meal 1: Breakfast", "sets": "Portion size (grams/spoons)", "reps": "Approx. 400 kcal", "rest": "08:00 AM", "notes": "Specific foods list. Macros breakdown: P/C/F. Swap option. Cooking & spices tips." }
+            { "name": "Meal 1: Breakfast", "sets": "Portion size", "reps": "Approx. 400 kcal", "rest": "08:00 AM", "notes": "[WHAT_TO_EAT] Oats cooked in cow's milk with sliced banana. [INGREDIENTS] 50g oats (dalia), 1 glass milk, 1 small banana. [COOKING_WAY] Cook oats in milk on medium heat. Top with banana. Avoid white sugar. [SWAP_OPTION] Swap with 3 boiled eggs + 2 slices of brown bread. [MACROS] Protein: 25g | Carbs: 55g | Fats: 8g" }
           ]
         }
       ],

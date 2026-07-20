@@ -1,6 +1,34 @@
 const PDFDocument = require('pdfkit');
 
 /**
+ * Helper to parse structured notes tag fields
+ */
+function parseNotes(notesStr) {
+  const result = { eat: '', ingredients: '', cooking: '', swap: '', macros: '' };
+  if (!notesStr) return result;
+  
+  const getTagVal = (tag, nextTags) => {
+    const startIdx = notesStr.indexOf(tag);
+    if (startIdx === -1) return '';
+    let endIdx = notesStr.length;
+    nextTags.forEach(nextTag => {
+      const nextIdx = notesStr.indexOf(nextTag, startIdx);
+      if (nextIdx !== -1 && nextIdx < endIdx) {
+        endIdx = nextIdx;
+      }
+    });
+    return notesStr.substring(startIdx + tag.length, endIdx).trim();
+  };
+  
+  result.eat = getTagVal('[WHAT_TO_EAT]', ['[INGREDIENTS]', '[COOKING_WAY]', '[SWAP_OPTION]', '[MACROS]']);
+  result.ingredients = getTagVal('[INGREDIENTS]', ['[COOKING_WAY]', '[SWAP_OPTION]', '[MACROS]']);
+  result.cooking = getTagVal('[COOKING_WAY]', ['[SWAP_OPTION]', '[MACROS]']);
+  result.swap = getTagVal('[SWAP_OPTION]', ['[MACROS]']);
+  result.macros = getTagVal('[MACROS]', []);
+  return result;
+}
+
+/**
  * Generate a beautifully styled, branded PDF from the training or diet program data
  * @param {object} programData - Structured program data from Gemini
  * @param {object} profile - Customer assessment answers (first_name, last_name, etc.)
@@ -202,43 +230,107 @@ function generateProgramPDF(programData, profile) {
 
         if (routine.exercises && Array.isArray(routine.exercises)) {
           routine.exercises.forEach(ex => {
-            let stats = '';
             if (isDietPlan) {
-              stats = `Portion: ${ex.sets}  |  Cal: ${ex.reps}  |  Time: ${ex.rest || 'N/A'}`;
+              // --- DIET PLAN CARD IN PAKISTANI LOCAL STYLE ---
+              const notesObj = parseNotes(ex.notes);
+              const mealName = ex.name || 'Meal';
+              const timingText = `Time: ${ex.rest || 'N/A'}  |  Cal: ${ex.reps || 'N/A'}`;
+
+              // Measure sub-section heights
+              const eatText = `What to Eat: ${notesObj.eat || 'Standard Portion'}`;
+              const portionText = `Portion Size: ${ex.sets || '1 Serving'}`;
+              
+              const eatHeight = doc.heightOfString(eatText, { width: doc.page.width - 140 });
+              const portionHeight = doc.heightOfString(portionText, { width: doc.page.width - 140 });
+              const ingredientsHeight = notesObj.ingredients ? doc.heightOfString(`Ingredients (Ajza): ${notesObj.ingredients}`, { width: doc.page.width - 140 }) : 0;
+              const cookingHeight = notesObj.cooking ? doc.heightOfString(`Preparation & Cooking Way: ${notesObj.cooking}`, { width: doc.page.width - 140 }) : 0;
+              const swapHeight = notesObj.swap ? doc.heightOfString(`Alternative Swap Option: ${notesObj.swap}`, { width: doc.page.width - 140 }) : 0;
+              const macrosHeight = notesObj.macros ? doc.heightOfString(`Macros Breakdown: ${notesObj.macros}`, { width: doc.page.width - 140 }) : 0;
+
+              const totalCardHeight = 24 + eatHeight + portionHeight + (ingredientsHeight ? ingredientsHeight + 4 : 0) + (cookingHeight ? cookingHeight + 4 : 0) + (swapHeight ? swapHeight + 4 : 0) + (macrosHeight ? macrosHeight + 4 : 0) + 32;
+
+              checkSpace(totalCardHeight);
+
+              // Gold-accented card wrapper
+              doc.rect(50, y, doc.page.width - 100, totalCardHeight - 4).fill(lightCardBg);
+              doc.rect(50, y, doc.page.width - 100, totalCardHeight - 4).lineWidth(0.5).strokeColor(borderColor).stroke();
+              doc.rect(50, y, 4, totalCardHeight - 4).fill(secondaryColor); // Thick Gold Border strip
+
+              // Header: Meal Name & Timing
+              doc.fillColor(primaryColor).fontSize(11).font('Helvetica-Bold').text(mealName, 65, y + 8, { width: 200 });
+              doc.fillColor(secondaryColor).fontSize(10).font('Helvetica-Bold').text(timingText, 275, y + 8, { width: doc.page.width - 325, align: 'right' });
+              
+              let cardY = y + 26;
+
+              // 1. What to Eat
+              doc.fillColor(primaryColor).fontSize(9.5).font('Helvetica-Bold').text('What to Eat: ', 65, cardY, { continued: true });
+              doc.font('Helvetica').text(notesObj.eat || 'Standard Portion');
+              cardY += eatHeight;
+
+              // 2. Portion Size
+              doc.font('Helvetica-Bold').text('Portion Size: ', 65, cardY, { continued: true });
+              doc.font('Helvetica').text(ex.sets || '1 Serving');
+              cardY += portionHeight;
+
+              // 3. Ingredients (Ajza)
+              if (notesObj.ingredients) {
+                doc.font('Helvetica-Bold').fillColor('#b8860b').text('Ingredients (Ajza): ', 65, cardY + 2, { continued: true });
+                doc.font('Helvetica').fillColor(textColor).text(notesObj.ingredients);
+                cardY += ingredientsHeight + 4;
+              }
+
+              // 4. Cooking Method
+              if (notesObj.cooking) {
+                doc.font('Helvetica-Bold').text('Preparation & Cooking: ', 65, cardY + 2, { continued: true });
+                doc.font('Helvetica-Oblique').fillColor(mutedColor).text(notesObj.cooking);
+                cardY += cookingHeight + 4;
+              }
+
+              // 5. Swap Option
+              if (notesObj.swap) {
+                doc.font('Helvetica-Bold').fillColor(primaryColor).text('Alternative Swap: ', 65, cardY + 2, { continued: true });
+                doc.font('Helvetica').fillColor(textColor).text(notesObj.swap);
+                cardY += swapHeight + 4;
+              }
+
+              // 6. Macros
+              if (notesObj.macros) {
+                doc.font('Helvetica-Bold').fillColor(secondaryColor).text('Macros Breakdown: ', 65, cardY + 2, { continued: true });
+                doc.font('Helvetica-Bold').text(notesObj.macros);
+                cardY += macrosHeight + 4;
+              }
+
+              y += totalCardHeight + 12; // Extra spacing between meal cards
+
             } else {
-              stats = `${ex.sets} sets x ${ex.reps} reps  |  Rest: ${ex.rest || '60s'}`;
+              // --- WORKOUT PROGRAM CARD (STANDARD STYLE) ---
+              const stats = `${ex.sets} sets x ${ex.reps} reps  |  Rest: ${ex.rest || '60s'}`;
+              const exName = ex.name || 'Exercise';
+              
+              const exNameHeight = doc.heightOfString(exName, { width: 220 });
+              const statsHeight = doc.heightOfString(stats, { width: doc.page.width - 325 });
+              const headerHeight = Math.max(exNameHeight, statsHeight);
+              
+              const notesContent = `Note: ${ex.notes || ''}`;
+              const notesHeight = ex.notes ? doc.heightOfString(notesContent, { width: doc.page.width - 140 }) : 0;
+              const exTotalHeight = headerHeight + (ex.notes ? notesHeight + 8 : 0) + 16;
+
+              checkSpace(exTotalHeight);
+
+              doc.rect(50, y, doc.page.width - 100, exTotalHeight - 4).fill(lightCardBg);
+              doc.rect(50, y, doc.page.width - 100, exTotalHeight - 4).lineWidth(0.5).strokeColor(borderColor).stroke();
+
+              doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold').text(exName, 65, y + 6, { width: 220 });
+              doc.fillColor(secondaryColor).fontSize(10).font('Helvetica-Bold').text(stats, 295, y + 6, { width: doc.page.width - 345, align: 'right' });
+              
+              y += headerHeight + 6;
+
+              if (ex.notes) {
+                doc.fillColor(mutedColor).fontSize(9).font('Helvetica-Oblique').text(notesContent, 75, y, { width: doc.page.width - 140 });
+                y += notesHeight + 6;
+              }
+              y += 8;
             }
-
-            const exName = ex.name || (isDietPlan ? 'Meal' : 'Exercise');
-            
-            // Measure heights dynamically to avoid overlap
-            const exNameHeight = doc.heightOfString(exName, { width: 220 });
-            const statsHeight = doc.heightOfString(stats, { width: doc.page.width - 325 });
-            const headerHeight = Math.max(exNameHeight, statsHeight);
-            
-            const notesContent = isDietPlan ? `Ingredients/Notes: ${ex.notes || ''}` : `Note: ${ex.notes || ''}`;
-            const notesHeight = ex.notes ? doc.heightOfString(notesContent, { width: doc.page.width - 140 }) : 0;
-            const exTotalHeight = headerHeight + (ex.notes ? notesHeight + 8 : 0) + 16;
-
-            checkSpace(exTotalHeight);
-
-            // Exercise Row background for luxury grid feel
-            doc.rect(50, y, doc.page.width - 100, exTotalHeight - 4).fill(lightCardBg);
-            doc.rect(50, y, doc.page.width - 100, exTotalHeight - 4).lineWidth(0.5).strokeColor(borderColor).stroke();
-
-            // Print Name (Meal or Exercise)
-            doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold').text(exName, 65, y + 6, { width: 220 });
-            
-            // Print Stats (Portions/Time or Sets/Reps) aligned to right
-            doc.fillColor(secondaryColor).fontSize(10).font('Helvetica-Bold').text(stats, 295, y + 6, { width: doc.page.width - 345, align: 'right' });
-            
-            y += headerHeight + 6;
-
-            if (ex.notes) {
-              doc.fillColor(mutedColor).fontSize(9).font('Helvetica-Oblique').text(notesContent, 75, y, { width: doc.page.width - 140 });
-              y += notesHeight + 6;
-            }
-            y += 8;
           });
         }
         y += 15;
