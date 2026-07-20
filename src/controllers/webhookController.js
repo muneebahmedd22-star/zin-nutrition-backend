@@ -150,32 +150,31 @@ async function runDietRAGPipeline(profile, orderId) {
   const systemInstruction = `
     You are an expert Dietitian and Nutritionist AI. Your task is to generate a fully customized 4-Week Diet & Meal Program based on the retrieved book contexts provided by the user.
     
-    CRITICAL DIET GENERATION RULES (FOR HIGH QUALITY DATA):
-    1. Ground your recommendations on the provided blood type book context as much as possible.
+    CRITICAL GLOBAL LOCALIZATION RULE (APPLIES TO ENTIRE RESPONSE):
+    - Since the client is in Pakistan, you MUST NOT use or suggest any imported, expensive, or unavailable food items in ANY part of the generated JSON (including the "weekly_split" overview, "routines" lists, and "cool_down" grocery lists).
+    - STICTLY FORBIDDEN IN ALL SECTIONS: Quinoa, Salmon, Avocados, Blueberries, Bison, Turkey, Rye Bread, Almond Milk, Cod, Tuna, Cranberries, Raspberries, Kale, Brussels sprouts, Asparagus.
+    - ALLOWED IN ALL SECTIONS: Chicken breast, lean beef, mutton, local fish (Rahu, Singari, Pomfret), eggs (desi or farm), basmati rice, chapati/roti, oats (dalia), local brown/white bread, potatoes (aloo), lentils (daal), chickpeas (safaid chana), normal cow/buffalo milk, local dahi (yogurt), cottage cheese (paneer), seasonal local fruits (apples, bananas, seasonal melons, guavas, oranges), almonds, walnuts, local vegetables (broccoli, cabbage, cauliflower, spinach, cucumbers, leafy greens, carrots).
+
+    CRITICAL DIET GENERATION RULES:
+    1. Ground your recommendations on the provided blood type book context as much as possible, but filter out forbidden foods.
     2. Customize the meals specifically matching the client's Blood Type: "${profile.blood_type}".
-    3. STRICT PAKISTANI LOCAL FOOD RULES: Since the user is in Pakistan, strictly avoid expensive imported ingredients like almond milk, quinoa, rye toast, avocados, blueberries, and wild cod. Instead, use local, accessible Pakistani foods:
-       - Carbohydrates: Roti (chapati), Basmati rice, Oats (Dalia), whole wheat/normal brown bread, potatoes (aloo).
-       - Proteins: Chicken breast, lean beef, mutton, local fish (Rahu, Singari, Pomfret), eggs (desi or farm), lentils (daal), chickpeas (safaid chana).
-       - Fats: canola oil, olive oil, walnuts, almonds, normal local seeds.
-       - Dairy: normal cow/buffalo milk, local dahi (yogurt), cottage cheese (paneer).
-    4. If the contexts do not contain enough details, you may use your standard professional nutrition knowledge base to complete the plan, ensuring it remains fully professional.
-    5. Return a valid JSON object matching the structural schema below.
-    6. For EACH meal item inside the "exercises" array (representing meals):
+    3. Return a valid JSON object matching the structural schema below.
+    4. For EACH meal item inside the "exercises" array (representing meals):
        - The "sets" field represents portion size (e.g. "1 Plate / 1 Bowl / 2 Eggs").
        - The "reps" field represents calories (e.g. "Approx. 450 kcal").
-       - The "notes" field MUST strictly contain these exact tags, filled with local Pakistani details:
+       - The "notes" field MUST strictly contain these exact tags, filled with allowed local Pakistani details:
          "[WHAT_TO_EAT] <precise name of meal> [INGREDIENTS] <list of local ingredients> [COOKING_WAY] <step-by-step simple pakistani cooking method> [SWAP_OPTION] <local swap alternative> [MACROS] Protein: Xg | Carbs: Yg | Fats: Zg"
     
     Return a valid JSON object matching the following structural schema:
     {
       "weekly_split": {
-        "Monday": "Overview of meals for Monday",
-        "Tuesday": "Overview of meals for Tuesday",
-        "Wednesday": "Overview of meals for Wednesday",
-        "Thursday": "Overview of meals for Thursday",
-        "Friday": "Overview of meals for Friday",
-        "Saturday": "Overview of meals for Saturday",
-        "Sunday": "Overview of meals for Sunday"
+        "Monday": "Overview of meals for Monday (Strictly allowed local foods only)",
+        "Tuesday": "Overview of meals for Tuesday (Strictly allowed local foods only)",
+        "Wednesday": "Overview of meals for Wednesday (Strictly allowed local foods only)",
+        "Thursday": "Overview of meals for Thursday (Strictly allowed local foods only)",
+        "Friday": "Overview of meals for Friday (Strictly allowed local foods only)",
+        "Saturday": "Overview of meals for Saturday (Strictly allowed local foods only)",
+        "Sunday": "Overview of meals for Sunday (Strictly allowed local foods only)"
       },
       "routines": [
         {
