@@ -211,24 +211,31 @@ function generateProgramPDF(programData, profile) {
 
             const exName = ex.name || (isDietPlan ? 'Meal' : 'Exercise');
             
+            // Measure heights dynamically to avoid overlap
             const exNameHeight = doc.heightOfString(exName, { width: 220 });
-            const notesHeight = ex.notes ? doc.heightOfString(isDietPlan ? `Ingredients/Directions: ${ex.notes}` : `Cues/Notes: ${ex.notes}`, { width: doc.page.width - 130 }) : 0;
-            const exTotalHeight = Math.max(exNameHeight, 14) + (ex.notes ? notesHeight + 6 : 0) + 12;
+            const statsHeight = doc.heightOfString(stats, { width: doc.page.width - 325 });
+            const headerHeight = Math.max(exNameHeight, statsHeight);
+            
+            const notesContent = isDietPlan ? `Ingredients/Notes: ${ex.notes || ''}` : `Note: ${ex.notes || ''}`;
+            const notesHeight = ex.notes ? doc.heightOfString(notesContent, { width: doc.page.width - 140 }) : 0;
+            const exTotalHeight = headerHeight + (ex.notes ? notesHeight + 8 : 0) + 16;
 
             checkSpace(exTotalHeight);
 
+            // Exercise Row background for luxury grid feel
             doc.rect(50, y, doc.page.width - 100, exTotalHeight - 4).fill(lightCardBg);
             doc.rect(50, y, doc.page.width - 100, exTotalHeight - 4).lineWidth(0.5).strokeColor(borderColor).stroke();
 
-            // Print Name
-            doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold').text(exName, 65, y + 5, { width: 220 });
+            // Print Name (Meal or Exercise)
+            doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold').text(exName, 65, y + 6, { width: 220 });
             
-            // Print Stats aligned to right
-            doc.fillColor(secondaryColor).fontSize(10).font('Helvetica-Bold').text(stats, doc.page.width - 310, y + 5, { width: 250, align: 'right' });
-            y += Math.max(exNameHeight, 14) + 4;
+            // Print Stats (Portions/Time or Sets/Reps) aligned to right
+            doc.fillColor(secondaryColor).fontSize(10).font('Helvetica-Bold').text(stats, 295, y + 6, { width: doc.page.width - 345, align: 'right' });
+            
+            y += headerHeight + 6;
 
             if (ex.notes) {
-              doc.fillColor(mutedColor).fontSize(9).font('Helvetica-Oblique').text(isDietPlan ? `Ingredients/Notes: ${ex.notes}` : `Note: ${ex.notes}`, 75, y + 2, { width: doc.page.width - 140 });
+              doc.fillColor(mutedColor).fontSize(9).font('Helvetica-Oblique').text(notesContent, 75, y, { width: doc.page.width - 140 });
               y += notesHeight + 6;
             }
             y += 8;
@@ -288,7 +295,7 @@ function generateProgramPDF(programData, profile) {
         { phase: 'Days 1 - 7: Metabolic Shift', effect: isDietPlan ? 'Water retention reduction, digestive adjustment to target food sources, stabilized blood sugar, and initial clean energy surge.' : 'Central nervous system activation, target movement learning, and initial pump response.' },
         { phase: 'Days 8 - 15: Cellular Reset', effect: isDietPlan ? 'Improved nutrient absorption, reduction in sugar cravings, deeper REM sleep cycles, and clean bowel movement patterns.' : 'Tendon adaptation, strength recovery optimization, and improved cardiovascular stamina.' },
         { phase: 'Days 16 - 21: Visible Adaptation', effect: isDietPlan ? 'Clothing fits better around waist/hips, muscular glycogen storage fullness, and visual scale changes.' : 'Muscular fullness, progressive load capacity increases (lifting heavier), and form automation.' },
-        { phase: 'Days 22 - 30: Setpoint Stabilization', effect: isDietPlan ? 'Metabolism recalibration, sustained fat reduction/muscle growth pattern, and complete habit stabilization.' : 'Visible muscle density increases, physical conditioning base built, ready for cycle progression.' }
+        { phase: 'Days 22 - 30: Setpoint Reset', effect: isDietPlan ? 'Metabolism recalibration, sustained fat reduction/muscle growth pattern, and complete habit stabilization.' : 'Visible muscle density increases, physical conditioning base built, ready for cycle progression.' }
       ];
 
       timelineData.forEach(item => {
@@ -308,7 +315,6 @@ function generateProgramPDF(programData, profile) {
 
       // --- 6. PRINTABLE TRACKING SHEET MODULE / GROCERY LIST ---
       if (isDietPlan) {
-        // Draw Grocery Shopping Checklist Table
         drawSectionTitle('6. Weekly Grocery & Market Shopping List');
         const groceryText = `• Proteins: Egg whites, Fresh Cod/Salmon, Skinless Chicken Breast, Greek Yogurt, Tofu, Lentils.\n• Carbohydrates: Oats, Brown Rice, Sweet Potatoes, Quinoa, Gluten-Free grains.\n• Healthy Fats: Virgin Olive Oil, Raw Almonds, Walnuts, Avocados.\n• Allowed Veggies: Broccoli, Spinach, Cucumber, Cauliflower, Leafy Greens.\n• Herbs & Spices: Ginger, Garlic, Olive oil, Green tea.`;
         const groceryHeight = doc.heightOfString(groceryText, { width: doc.page.width - 120, lineGap: 3 });
@@ -319,7 +325,6 @@ function generateProgramPDF(programData, profile) {
         doc.fillColor(textColor).fontSize(10).font('Helvetica').text(groceryText, 65, y + 12, { width: doc.page.width - 120, lineGap: 3 });
         y += groceryHeight + 40;
       } else {
-        // Draw empty Gym Log template sheet for printable tracking
         drawSectionTitle('6. Printable Progress Tracking Log');
         const trackingHeight = 150;
         checkSpace(trackingHeight + 20);
@@ -327,17 +332,14 @@ function generateProgramPDF(programData, profile) {
         doc.rect(50, y, doc.page.width - 100, trackingHeight).fill(lightCardBg);
         doc.rect(50, y, doc.page.width - 100, trackingHeight).lineWidth(0.5).strokeColor(borderColor).stroke();
 
-        // Print header for log
         doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold').text('PRINT & USE AT GYM: PROGRESS LOGGER', 65, y + 10);
         
-        // Draw table headers
         let logY = y + 30;
         doc.fillColor(secondaryColor).fontSize(9).text('Exercise Name', 65, logY);
         doc.text('Set 1 (Wt/Reps)', 220, logY);
         doc.text('Set 2 (Wt/Reps)', 320, logY);
         doc.text('Set 3 (Wt/Reps)', 420, logY);
         
-        // Draw 4 blank exercise rows
         for(let i=0; i<4; i++) {
           logY += 24;
           doc.strokeColor(borderColor).lineWidth(0.5).moveTo(55, logY).lineTo(doc.page.width - 55, logY).stroke();
