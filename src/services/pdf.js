@@ -1,7 +1,7 @@
 const PDFDocument = require('pdfkit');
 
 /**
- * Generate a beautifully styled, branded PDF from the training program data
+ * Generate a beautifully styled, branded PDF from the training or diet program data
  * @param {object} programData - Structured program data from Gemini
  * @param {object} profile - Customer assessment answers (first_name, last_name, etc.)
  * @returns {Promise<Buffer>} - Resolved PDF buffer
@@ -13,7 +13,7 @@ function generateProgramPDF(programData, profile) {
         margin: 50,
         size: 'A4',
         info: {
-          Title: `ZIN NUTRITION - Personalized Training Program`,
+          Title: `ZIN NUTRITION - Personalized Program`,
           Author: 'Zin Nutrition AI'
         }
       });
@@ -30,6 +30,19 @@ function generateProgramPDF(programData, profile) {
       const mutedColor = '#666666';
       const lightCardBg = '#FAF9F6'; // Warm luxury cream
       const borderColor = '#EAEAEA';
+
+      // Detect if this is a Diet/Meal Plan or Workout Program
+      let isDietPlan = false;
+      const routines = programData.routines || [];
+      if (routines.length > 0 && routines[0].exercises && routines[0].exercises.length > 0) {
+        const firstEx = routines[0].exercises[0];
+        const nameLower = (firstEx.name || '').toLowerCase();
+        const repsLower = (firstEx.reps || '').toLowerCase();
+        const restLower = (firstEx.rest || '').toLowerCase();
+        if (nameLower.includes('meal') || repsLower.includes('kcal') || restLower.includes('am') || restLower.includes('pm')) {
+          isDietPlan = true;
+        }
+      }
 
       // --- COVER PAGE ---
       doc.rect(0, 0, doc.page.width, doc.page.height).fill(primaryColor);
@@ -68,10 +81,11 @@ function generateProgramPDF(programData, profile) {
       doc.rect(180, 310, doc.page.width - 360, 3).fill(secondaryColor);
 
       // Main Guide Type
+      const docTypeTitle = isDietPlan ? 'PERSONALIZED DIET & MEAL PLAN' : 'PERSONALIZED TRAINING PROGRAM';
       doc.fillColor('#FFFFFF')
          .fontSize(18)
          .font('Helvetica-Bold')
-         .text('PERSONALIZED TRAINING PROGRAM', 50, 340, { align: 'center', characterSpacing: 1 });
+         .text(docTypeTitle, 50, 340, { align: 'center', characterSpacing: 1 });
 
       // Customer Info Card Box
       doc.rect(80, 430, doc.page.width - 160, 120).fill('rgba(255, 255, 255, 0.03)');
@@ -102,7 +116,6 @@ function generateProgramPDF(programData, profile) {
 
       // --- HEADER ON SUBSEQUENT PAGES ---
       const drawHeader = () => {
-        // Draw elegant top bar band
         doc.rect(0, 0, doc.page.width, 44).fill(primaryColor);
         doc.fillColor('#FFFFFF')
            .fontSize(11)
@@ -111,7 +124,7 @@ function generateProgramPDF(programData, profile) {
         doc.fillColor(secondaryColor)
            .fontSize(9)
            .font('Helvetica-Bold')
-           .text('PERSONALIZED WORKOUT split', doc.page.width - 250, 18, { align: 'right', characterSpacing: 1 });
+           .text(isDietPlan ? 'PERSONALIZED DIET & MEAL PLAN' : 'PERSONALIZED WORKOUT SPLIT', doc.page.width - 270, 18, { align: 'right', characterSpacing: 1 });
         doc.rect(0, 44, doc.page.width, 2).fill(secondaryColor);
       };
       
@@ -132,12 +145,12 @@ function generateProgramPDF(programData, profile) {
       const drawSectionTitle = (titleText) => {
         checkSpace(35);
         doc.rect(50, y, 4, 18).fill(secondaryColor);
-        doc.fillColor(primaryColor).fontSize(14).font('Helvetica-Bold').text(titleText, 62, y);
+        doc.fillColor(primaryColor).fontSize(13).font('Helvetica-Bold').text(titleText, 62, y);
         y += 28;
       };
 
-      // 1. Weekly Workout Split
-      drawSectionTitle('1. Weekly Workout Split');
+      // 1. Weekly Split (Workout Split or Diet Split)
+      drawSectionTitle(isDietPlan ? '1. Weekly Meal Schedule Overview' : '1. Weekly Workout Split');
 
       const split = programData.weekly_split || {};
       Object.keys(split).forEach(day => {
@@ -147,7 +160,6 @@ function generateProgramPDF(programData, profile) {
         
         checkSpace(dayDescHeight + 14);
 
-        // Subtle block background
         doc.rect(50, y, doc.page.width - 100, dayDescHeight + 10)
            .fill(lightCardBg)
            .strokeColor(borderColor)
@@ -162,43 +174,46 @@ function generateProgramPDF(programData, profile) {
 
       y += 15;
 
-      // 2. Exercises Detail
-      drawSectionTitle('2. Daily Exercises & Routines');
+      // 2. Exercises Detail / Daily Meals
+      drawSectionTitle(isDietPlan ? '2. Daily Meal Planner & Recipes' : '2. Daily Exercises & Routines');
 
-      const routines = programData.routines || [];
       routines.forEach(routine => {
-        checkSpace(65); // Header box + first item
+        checkSpace(65);
         
-        // Routine Header Box (Gold accents + dark text banner)
         doc.rect(50, y, doc.page.width - 100, 24).fill('#EAEAEA');
         doc.rect(50, y, 4, 24).fill(secondaryColor);
-        doc.fillColor(primaryColor).fontSize(11).font('Helvetica-Bold').text(routine.day_name || 'Workout Day', 62, y + 6);
+        doc.fillColor(primaryColor).fontSize(11).font('Helvetica-Bold').text(routine.day_name || (isDietPlan ? 'Meal Schedule' : 'Workout Day'), 62, y + 6);
         y += 32;
 
         if (routine.exercises && Array.isArray(routine.exercises)) {
           routine.exercises.forEach(ex => {
-            const stats = `${ex.sets} sets x ${ex.reps} reps  |  Rest: ${ex.rest || '60s'}`;
-            const exName = ex.name || 'Exercise';
+            let stats = '';
+            if (isDietPlan) {
+              stats = `Portion: ${ex.sets}  |  Cal: ${ex.reps}  |  Time: ${ex.rest || 'N/A'}`;
+            } else {
+              stats = `${ex.sets} sets x ${ex.reps} reps  |  Rest: ${ex.rest || '60s'}`;
+            }
+
+            const exName = ex.name || (isDietPlan ? 'Meal' : 'Exercise');
             
             const exNameHeight = doc.heightOfString(exName, { width: 220 });
-            const notesHeight = ex.notes ? doc.heightOfString(`Note: ${ex.notes}`, { width: doc.page.width - 130 }) : 0;
+            const notesHeight = ex.notes ? doc.heightOfString(`Instructions: ${ex.notes}`, { width: doc.page.width - 130 }) : 0;
             const exTotalHeight = Math.max(exNameHeight, 14) + (ex.notes ? notesHeight + 6 : 0) + 12;
 
             checkSpace(exTotalHeight);
 
-            // Exercise Row background for luxury grid feel
             doc.rect(50, y, doc.page.width - 100, exTotalHeight - 4).fill(lightCardBg);
             doc.rect(50, y, doc.page.width - 100, exTotalHeight - 4).lineWidth(0.5).strokeColor(borderColor).stroke();
 
-            // Print Exercise Name
+            // Print Name (Meal or Exercise)
             doc.fillColor(primaryColor).fontSize(10).font('Helvetica-Bold').text(exName, 65, y + 5, { width: 220 });
             
-            // Print Exercise Sets/Reps aligned to right
-            doc.fillColor(secondaryColor).fontSize(10).font('Helvetica-Bold').text(stats, doc.page.width - 260, y + 5, { width: 200, align: 'right' });
+            // Print Stats (Portions/Time or Sets/Reps) aligned to right
+            doc.fillColor(secondaryColor).fontSize(10).font('Helvetica-Bold').text(stats, doc.page.width - 310, y + 5, { width: 250, align: 'right' });
             y += Math.max(exNameHeight, 14) + 4;
 
             if (ex.notes) {
-              doc.fillColor(mutedColor).fontSize(9).font('Helvetica-Oblique').text(`Note: ${ex.notes}`, 75, y + 2, { width: doc.page.width - 140 });
+              doc.fillColor(mutedColor).fontSize(9).font('Helvetica-Oblique').text(isDietPlan ? `Ingredients/Notes: ${ex.notes}` : `Note: ${ex.notes}`, 75, y + 2, { width: doc.page.width - 140 });
               y += notesHeight + 6;
             }
             y += 8;
@@ -207,8 +222,8 @@ function generateProgramPDF(programData, profile) {
         y += 15;
       });
 
-      // 3. Warm-up & Cool-down
-      drawSectionTitle('3. Warm-Up & Cool-Down Protocols');
+      // 3. Warm-up & Cool-down / Calories & Hydration
+      drawSectionTitle(isDietPlan ? '3. Daily Calorie Targets & Fluid Protocols' : '3. Warm-Up & Cool-Down Protocols');
 
       const warmUpVal = programData.warm_up || '5-10 minutes dynamic stretching.';
       const coolDownVal = programData.cool_down || '5-10 minutes static stretching.';
@@ -217,22 +232,22 @@ function generateProgramPDF(programData, profile) {
 
       checkSpace(warmUpHeight + coolDownHeight + 110);
 
-      // Warm Up Box
+      // Warm Up Box (Diet Calories)
       doc.rect(50, y, doc.page.width - 100, warmUpHeight + 35).fill(lightCardBg);
       doc.rect(50, y, doc.page.width - 100, warmUpHeight + 35).lineWidth(0.5).strokeColor(borderColor).stroke();
-      doc.fillColor(secondaryColor).fontSize(11).font('Helvetica-Bold').text('Warm-Up Routine:', 65, y + 8);
+      doc.fillColor(secondaryColor).fontSize(11).font('Helvetica-Bold').text(isDietPlan ? 'Daily Calories & Macro Targets:' : 'Warm-Up Routine:', 65, y + 8);
       doc.fillColor(textColor).fontSize(10).font('Helvetica').text(warmUpVal, 65, y + 24, { width: doc.page.width - 130, lineGap: 2 });
       y += warmUpHeight + 50;
 
-      // Cool Down Box
+      // Cool Down Box (Diet Fluids)
       doc.rect(50, y, doc.page.width - 100, coolDownHeight + 35).fill(lightCardBg);
       doc.rect(50, y, doc.page.width - 100, coolDownHeight + 35).lineWidth(0.5).strokeColor(borderColor).stroke();
-      doc.fillColor(secondaryColor).fontSize(11).font('Helvetica-Bold').text('Cool-Down Routine:', 65, y + 8);
+      doc.fillColor(secondaryColor).fontSize(11).font('Helvetica-Bold').text(isDietPlan ? 'Hydration & Grocery List:' : 'Cool-Down Routine:', 65, y + 8);
       doc.fillColor(textColor).fontSize(10).font('Helvetica').text(coolDownVal, 65, y + 24, { width: doc.page.width - 130, lineGap: 2 });
       y += coolDownHeight + 30;
 
-      // 4. Progressive Overload & Recovery
-      drawSectionTitle('4. Coaching Guidelines');
+      // 4. Progressive Overload & Recovery / Diet Adjustments & Supplements
+      drawSectionTitle(isDietPlan ? '4. Nutrition Coaching Guidelines' : '4. Coaching Guidelines');
 
       const overloadVal = programData.progressive_overload || 'Increase weight or reps gradually each week.';
       const recoveryVal = programData.recovery || 'Ensure 7-9 hours of sleep and adequate protein intake.';
@@ -241,17 +256,17 @@ function generateProgramPDF(programData, profile) {
 
       checkSpace(overloadHeight + recoveryHeight + 110);
 
-      // Overload Box
+      // Overload Box (Diet Adjustments)
       doc.rect(50, y, doc.page.width - 100, overloadHeight + 35).fill(lightCardBg);
       doc.rect(50, y, doc.page.width - 100, overloadHeight + 35).lineWidth(0.5).strokeColor(borderColor).stroke();
-      doc.fillColor(secondaryColor).fontSize(11).font('Helvetica-Bold').text('Progressive Overload Strategy:', 65, y + 8);
+      doc.fillColor(secondaryColor).fontSize(11).font('Helvetica-Bold').text(isDietPlan ? 'Weekly Diet Adaptation & Portion Control:' : 'Progressive Overload Strategy:', 65, y + 8);
       doc.fillColor(textColor).fontSize(10).font('Helvetica').text(overloadVal, 65, y + 24, { width: doc.page.width - 130, lineGap: 2 });
       y += overloadHeight + 50;
 
-      // Recovery Box
+      // Recovery Box (Diet Supplements)
       doc.rect(50, y, doc.page.width - 100, recoveryHeight + 35).fill(lightCardBg);
       doc.rect(50, y, doc.page.width - 100, recoveryHeight + 35).lineWidth(0.5).strokeColor(borderColor).stroke();
-      doc.fillColor(secondaryColor).fontSize(11).font('Helvetica-Bold').text('Recovery Recommendations:', 65, y + 8);
+      doc.fillColor(secondaryColor).fontSize(11).font('Helvetica-Bold').text(isDietPlan ? 'Blood Type Specific Supplement Protocols:' : 'Recovery Recommendations:', 65, y + 8);
       doc.fillColor(textColor).fontSize(10).font('Helvetica').text(recoveryVal, 65, y + 24, { width: doc.page.width - 130, lineGap: 2 });
       y += recoveryHeight + 30;
 
@@ -267,7 +282,7 @@ function generateProgramPDF(programData, profile) {
          .lineWidth(1)
          .stroke();
 
-      doc.fillColor('#856404').fontSize(10).font('Helvetica-Bold').text('SAFETY & PRECAUTIONS', 65, y + 8);
+      doc.fillColor('#856404').fontSize(10).font('Helvetica-Bold').text(isDietPlan ? 'FOODS & COMBINATIONS TO STRICTLY AVOID' : 'SAFETY & PRECAUTIONS', 65, y + 8);
       doc.fillColor(textColor).font('Helvetica').text(safetyVal, 65, y + 22, { width: doc.page.width - 130, lineGap: 2 });
 
       doc.end();
